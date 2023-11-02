@@ -5,6 +5,7 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <optional>
 
 using namespace std;
 
@@ -349,6 +350,7 @@ void deletePerson(vector <Person> &persons) {
         confirm = loadChar();
         confirm = tolower(confirm);
         if(confirm == 't') {
+            persons.erase(persons.begin() + indexPersonToDelete);
              ifstream file1;
             ofstream file2;
             file1.open("ksiazkaAdresowa.txt",ios::in);
@@ -383,19 +385,18 @@ void deletePerson(vector <Person> &persons) {
     }
     system("pause");
 }
-void changePassword(vector <User> &users, int userIdLogged){
-    for(User a: users){
-        cout <<a.id<<endl;
-    }
+void changePassword(User &userLogged){
+
 }
-void menu(int userIdLogged) {
+void menu(User &userLogged) {
     vector <Person> persons;
     int personQuantity = 0;
+    persons = loadFromFile(userLogged.id,personQuantity);
     char choice;
 
     while(1) {
         system("cls");
-        persons = loadFromFile(userIdLogged,personQuantity);
+
         cout << setw(30) << left <<  "<<<<<Ksiazka adresowa>>>>>"<<endl;
         cout<<setw(30) << left << "1. Dodaj adresata"<<endl;
         cout<<"2. Wyszukaj po imieniu"<<endl;
@@ -409,7 +410,7 @@ void menu(int userIdLogged) {
         choice = loadChar();
         switch (choice) {
         case '1':
-            addFriend(personQuantity,userIdLogged);
+            addFriend(personQuantity,userLogged.id);
             break;
         case '2':
             searchByFirstName(persons );
@@ -427,7 +428,7 @@ void menu(int userIdLogged) {
             modifyPersonData(persons);
             break;
         case '7':
-            changePassword(users, userIdLogged);
+            changePassword(userLogged);
             break;
         case '8':
             return;
@@ -462,29 +463,46 @@ void loadUsersFromFile(vector <User> &users) {
         }
     }
 }
-int checkLoginData(vector <User> &users,User &userToCheck) {
+bool checkLoginData(vector <User> &users,string userLoginToCheck, User &foundUser) {
     int userIdToLogin = 0;
     for(User user :users) {
-        if(user.login == userToCheck.login &&user.password == userToCheck.password) {
-            userIdToLogin = user.id;
+        if(user.login == userLoginToCheck) {
+             foundUser = user;
+            return true;
         }
     }
-    return userIdToLogin;
+    return false;
 }
 void loginUser(vector <User> &users) {
-    User user;
+    string userLoginToCheck;
+    User userLogged;
     system("cls");
     cout << setw(30) <<">>>>LOGOWANIE<<<<" << endl;
     cout << string(50, '~') << endl;
     cout << "Podaj login: " ;
-    user.login = loadText();
-    cout << "Podaj haslo: ";
-    user.password  = loadText();
-    int userId = checkLoginData(users,user);
-    if(userId) {
-        menu(userId);
+    userLoginToCheck = loadText();
+    if(checkLoginData(users,userLoginToCheck,userLogged)) {
+        cout << "Podaj haslo: ";
+        string userPassword  = loadText();
+        int counter = 3;
+        while(userPassword != userLogged.password && counter > 0){
+            system("cls");
+            cout << "Podales niewlasciwe haslo" << endl <<"Pozostalo " << counter << " prob";
+            counter--;
+            if(counter >= 0){
+                cout << endl << "Podaj haslo ponownie :" << endl;
+                userPassword = loadText();
+            }
+        }
+        if (userPassword == userLogged.password) {
+            menu(userLogged);
+        } else {
+            system("cls");
+            cout << "Przekroczono limit prob logowania." << endl;
+            Sleep(1500);
+        }
     } else {
-        cout << "Nieprawidlowe haslo albo login";
+        cout << "Nieprawidlowy login";
         Sleep(1500);
     }
 }
