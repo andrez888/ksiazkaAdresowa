@@ -5,11 +5,12 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <optional>
 
 using namespace std;
 
 struct Person {
-    int id;
+    int id,userId;
     string firstName, lastName, emailAdress, adress, phoneNumber;
 };
 struct User {
@@ -79,13 +80,11 @@ void saveDataToFile(vector <Person> persons) {
     }
     file.close();
 }
-void addFriend(vector <Person> &persons, int userIdLogged ) {
+void addFriend(vector <Person> &persons, int &personsQuantity, int userIdLogged ) {
     Person person;
-    if (persons.size() == 0) {
-        person.id =  1;
-    } else {
-        person.id = persons[persons.size() - 1].id + 1;
-    }
+    person.id = personsQuantity+1;
+    personsQuantity++;
+    person.userId = userIdLogged;
     cout << "Podaj imie:  "<< endl;
     person.firstName = loadText();
     cout << "Podaj nazwisko:  "<< endl;
@@ -96,16 +95,16 @@ void addFriend(vector <Person> &persons, int userIdLogged ) {
     person.emailAdress = loadText();
     cout << "Podaj swoj adres:  "<< endl;
     person.adress = loadText();
-    persons.push_back(person);
+
     cout << endl << "Kontakt dodany pomyslnie" ;
     Sleep(1000);
-
+    persons.push_back(person);
     ofstream file;
     file.open("ksiazkaAdresowa.txt",ios::out | ios::app);
 
-    if ( file.good() == true) {
+    if ( file.good()) {
         file << person.id << "|";
-        file << userIdLogged << "|";
+        file << person.userId << "|";
         file << person.firstName << "|";
         file << person.lastName << "|";
         file << person.phoneNumber << "|";
@@ -130,6 +129,7 @@ void showFriends(vector <Person> &persons) {
     system("pause");
 }
 void searchByFirstName(vector <Person> &persons) {
+    system("cls");
     int found = 0;
     string name;
     if(persons.empty()) {
@@ -149,6 +149,7 @@ void searchByFirstName(vector <Person> &persons) {
     system("pause");
 }
 void searchByLastName(vector <Person> &persons) {
+    system("cls");
     int found = 0;
     string name;
     if(persons.empty()) {
@@ -167,46 +168,39 @@ void searchByLastName(vector <Person> &persons) {
     }
     system("pause");
 }
-vector <Person> loadFromFile(  ) {
-    vector <Person> persons;
+vector <Person> loadFromFile(int idUserNumber,int &personsquantity ) {
+    vector <Person> persons = {};
     Person person;
     string line;
     ifstream file;
     file.open("ksiazkaAdresowa.txt",ios::in);
 
     if (!file.good()) {
-        return persons;
+        cout << "Nie mozna otworzyc pliku";
     } else {
-        while(getline(file, line)) {
-            string text = "";
-            string texts[6];
-            int counter = 0;
-            int counter2 = 0;
-            for(size_t i = 0 ; i < line.length() ; i++) {
-                if(line[i] == '|') {
-                    texts[counter2] = text;
-                    counter2++;
-                    text = "";
-                    counter = i +1;
-                    continue;
-                }
-                text += line[counter];
-                counter++;
-            }
-            person.id = atoi(texts[0].c_str());
-            person.firstName = texts[1];
-            person.lastName = texts[2];
-            person.phoneNumber = texts[3];
-            person.emailAdress = texts[4];
-            person.adress = texts[5];
-            persons.push_back(person);
-        }
-    }
-    file.close();
+        while (getline(file, line)) {
+            istringstream iss(line);
+            string token;
 
+            getline(iss, token, '|');
+            person.id = stoi(token);
+            personsquantity = person.id;
+            getline(iss, token, '|');
+            person.userId = stoi(token);
+            getline(iss, person.firstName, '|');
+            getline(iss, person.lastName, '|');
+            getline(iss, person.phoneNumber, '|');
+            getline(iss, person.emailAdress, '|');
+            getline(iss, person.adress, '|');
+
+            if(person.userId == idUserNumber) {
+                persons.push_back(person);
+            }
+        }
+        file.close();
+    }
     return persons ;
 }
-
 int searchPersonByID(vector <Person> &persons, int idToSearch) {
     int searchedPersonId = -1;
     for(size_t i = 0 ; i < persons.size() ; i++) {
@@ -277,7 +271,7 @@ void modifyPersonData(vector <Person> &persons) {
                 cout << "Dane zmieniono pomyslnie" <<endl ;
                 system("pause");
             }
-
+            break;
             case '5': {
                 cout << "Podaj nowy adres: " << endl;
                 dataToChange = loadText();
@@ -294,14 +288,46 @@ void modifyPersonData(vector <Person> &persons) {
                 cout << "Zly wybor";
             }
             }
-            saveDataToFile(persons);
+            ifstream file1;
+            ofstream file2;
+            file1.open("ksiazkaAdresowa.txt",ios::in);
+            file2.open("ksiazkaAdresowa_tymczasowa.txt",ios::out| ios::app);
+            string line;
+            string indexToChangeStr = to_string(persons[indexToChange].id);
+            int numberLength = indexToChangeStr.length();
+            while(getline(file1,line)) {
+                string index = line.substr(0,numberLength);
+                if(indexToChangeStr == index) {
+                    file2 << persons[indexToChange].id << "|";
+                    file2 << persons[indexToChange].userId << "|";
+                    file2 << persons[indexToChange].firstName << "|";
+                    file2 << persons[indexToChange].lastName << "|";
+                    file2 << persons[indexToChange].phoneNumber << "|";
+                    file2 << persons[indexToChange].emailAdress << "|";
+                    file2 << persons[indexToChange].adress << "|" ;
+                    file2 << endl;
+                } else {
+                    file2 << line <<endl;
+                }
+
+            }
+            file1.close();
+            file2.close();
+            if (remove("ksiazkaAdresowa.txt") != 0) {
+                cerr << "Error deleting original file." << endl;
+                exit(EXIT_FAILURE);
+            }
+
+            if (rename("ksiazkaAdresowa_tymczasowa.txt", "ksiazkaAdresowa.txt") != 0) {
+                cerr << "Error renaming temporary file." << endl;
+                exit(EXIT_FAILURE);
+            }
             cout << endl << "Chcesz jeszcze cos edytowac? t/n" <<endl;
             choice = loadChar();
             choice = tolower(choice);
             system("cls");
         }
     }
-    system("pause");
 }
 void deletePerson(vector <Person> &persons) {
     int id;
@@ -325,34 +351,102 @@ void deletePerson(vector <Person> &persons) {
         confirm = loadChar();
         confirm = tolower(confirm);
         if(confirm == 't') {
+            ifstream file1;
+            ofstream file2;
+            file1.open("ksiazkaAdresowa.txt",ios::in);
+            file2.open("ksiazkaAdresowa_tymczasowa.txt",ios::out| ios::app);
+            string line;
+            string indexToDeletedStr = to_string(persons[indexPersonToDelete].id);
+            int numberLength = indexToDeletedStr.length();
+
+            while(getline(file1,line)) {
+                string index = line.substr(0,numberLength);
+                if(indexToDeletedStr == index) {
+                    continue;
+                } else {
+                    file2 << line <<endl;
+                }
+            }
+            file1.close();
+            file2.close();
+            if (remove("ksiazkaAdresowa.txt") != 0) {
+                cerr << "Error deleting original file." << endl;
+                exit(EXIT_FAILURE);
+            }
+
+            if (rename("ksiazkaAdresowa_tymczasowa.txt", "ksiazkaAdresowa.txt") != 0) {
+                cerr << "Error renaming temporary file." << endl;
+                exit(EXIT_FAILURE);
+            }
             persons.erase(persons.begin() + indexPersonToDelete);
             cout << "uzytkownik usuniety" << endl;
-            saveDataToFile(persons);
         } else {
             cout << "uzytkownik nie zostal usuniety" << endl;
         }
     }
     system("pause");
 }
-void menu(int userIdLogged) {
+void saveUserToFile(vector <User> &users) {
+    ofstream file;
+    file.open("uzytkownicy.txt", ios::out);
+
+    if(!file) {
+        cout << "nie udalo sie otworzyc pliku" ;
+        Sleep(2000);
+    } else {
+        for(User user : users) {
+            file << user.id << "|" << user.login << "|" << user.password << "|" <<endl;
+        }
+    }
+    file.close();
+}
+void changePassword(vector <User> &users,User &userLogged) {
+    string oldPassword;
+    string newPassword;
+    cout << "Podaj dotychczasowe haslo: "<<endl;
+    oldPassword = loadText();
+    if(oldPassword == userLogged.password) {
+        cout << endl << "Podaj nowe haslo: " <<endl;
+        newPassword = loadText();
+
+        for(User &user: users) {
+            if(user.id == userLogged.id) {
+                user.password = newPassword;
+            }
+        }
+
+        saveUserToFile(users);
+        cout << endl << "Haslo zostalo zmienione pomyslnie" <<endl;
+        Sleep(1000);
+    } else {
+        cout << endl<< "Nie prawidlowe haslo"<<endl;
+        Sleep(1000);
+    }
+}
+void menu(vector <User> &users,User &userLogged) {
     vector <Person> persons;
+    int personQuantity = 0;
+    int userLoggedId = userLogged.id;
+    persons = loadFromFile(userLoggedId,personQuantity);
     char choice;
-    persons = loadFromFile();
 
     while(1) {
         system("cls");
-        cout<<"<<<<<Ksiazka adresowa>>>>>"<<endl;
-        cout<<"1. Dodaj adresata"<<endl;
+
+        cout << setw(30) << left <<  "<<<<<Ksiazka adresowa>>>>>"<<endl;
+        cout<<setw(30) << left << "1. Dodaj adresata"<<endl;
         cout<<"2. Wyszukaj po imieniu"<<endl;
         cout<<"3. Wyszukaj po nazwisku"<<endl;
         cout <<"4. Wyswietl wszystkich adresatow" << endl;
         cout <<"5. Usun adresata" << endl;
         cout<<"6. Edytuj adresata"<<endl;
-        cout<<"7. Zakoncz program"<<endl;
+        cout << string(30,'-') << endl;
+        cout << "7. Zmien haslo" << endl;
+        cout<<"8. Wyloguj"<<endl;
         choice = loadChar();
         switch (choice) {
         case '1':
-            addFriend(persons,userIdLogged);
+            addFriend(persons,personQuantity,userLoggedId);
             break;
         case '2':
             searchByFirstName(persons );
@@ -370,15 +464,16 @@ void menu(int userIdLogged) {
             modifyPersonData(persons);
             break;
         case '7':
-            exit(0);
+            changePassword(users,userLogged);
+            break;
+        case '8':
+            return;
             break;
         default:
             cout<<"Zly przycisk";
             Sleep(1000);
         }
-
     }
-
 }
 void loadUsersFromFile(vector <User> &users) {
     ifstream file;
@@ -404,44 +499,56 @@ void loadUsersFromFile(vector <User> &users) {
         }
     }
 }
-int checkLoginData(vector <User> &users,User &userToCheck) {
+bool checkLoginData(vector <User> &users,string userLoginToCheck, User &foundUser) {
     int userIdToLogin = 0;
     for(User user :users) {
-        if(user.login == userToCheck.login &&user.password == userToCheck.password){userIdToLogin = user.id;}
+        if(user.login == userLoginToCheck) {
+            foundUser = user;
+            return true;
+        }
     }
-    return userIdToLogin;
+    return false;
 }
 void loginUser(vector <User> &users) {
-    User user;
+    string userLoginToCheck;
+    User userLogged;
     system("cls");
     cout << setw(30) <<">>>>LOGOWANIE<<<<" << endl;
     cout << string(50, '~') << endl;
     cout << "Podaj login: " ;
-    user.login = loadText();
-    cout << "Podaj haslo: ";
-    user.password  = loadText();
-    int userId = checkLoginData(users,user);
-    if(userId) {
-        menu(userId);
+    userLoginToCheck = loadText();
+    if(checkLoginData(users,userLoginToCheck,userLogged)) {
+        cout << "Podaj haslo: ";
+        string userPassword  = loadText();
+        int counter = 3;
+        while(userPassword != userLogged.password && counter > 0) {
+            system("cls");
+            cout << "Podales niewlasciwe haslo" << endl <<"Pozostalo " << counter << " prob";
+            counter--;
+            if(counter >= 0) {
+                cout << endl << "Podaj haslo ponownie :" << endl;
+                userPassword = loadText();
+            }
+        }
+        if (userPassword == userLogged.password) {
+            menu(users,userLogged);
+        } else {
+            system("cls");
+            cout << "Przekroczono limit prob logowania." << endl;
+            Sleep(1500);
+        }
     } else {
-        cout << "Nieprawidlowe haslo albo login";
+        cout << "Nieprawidlowy login";
         Sleep(1500);
     }
 }
-void saveUserToFile(vector <User> &users) {
-    ofstream file;
-
-    file.open("uzytkownicy.txt", ios::out);
-
-    if(!file) {
-        cout << "nie udalo sie otworzyc pliku" ;
-        Sleep(2000);
-    } else {
-        for(User user : users) {
-            file << user.id << "|" << user.login << "|" << user.password << "|" <<endl;
+bool isLoginFree(vector <User> &users, string loginName){
+    for(User user : users){
+        if(user.login == loginName){
+            return false;
         }
     }
-    file.close();
+    return true;
 }
 void registartion(vector <User> &users) {
     User user;
@@ -452,8 +559,15 @@ void registartion(vector <User> &users) {
         user.id = users.back().id +1;
     }
     cout << "Podaj login: ";
-    user.login = loadText();;
-    cout << endl << "Podaj haslo: ";
+    user.login = loadText();
+    while (!isLoginFree(users, user.login)) {
+            system("cls");
+        cout << "Podana nazwa uzytkownika - "<< user.login <<  " jest zajeta" << endl;
+        Sleep(750);
+        cout << "Podaj inny login: ";
+        user.login = loadText();
+    }
+        cout << endl << "Podaj haslo: ";
     user.password  = loadText();;
     Sleep(500);
     cout << endl<< "Rejestracja zakonczona sukcesem";
@@ -461,6 +575,7 @@ void registartion(vector <User> &users) {
     system("cls");
     users.push_back(user);
     saveUserToFile(users);
+
 }
 void mainMenu() {
     vector <User> users;
