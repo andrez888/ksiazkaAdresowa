@@ -211,6 +211,12 @@ int searchPersonByID(vector <Person> &persons, int idToSearch) {
     }
     return searchedPersonId;
 }
+void displayAvaiableIDs(vector <Person> &persons){
+    cout << "Dostepne id: ";
+    for(Person &person : persons){
+        cout << person.id << " ";
+    }
+}
 void modifyPersonData(vector <Person> &persons) {
     int id;
     int indexToChange;
@@ -219,16 +225,17 @@ void modifyPersonData(vector <Person> &persons) {
     system("cls");
     if(persons.empty()) {
         cout <<"Ksiazka adresowa jest pusta" << endl;
-
+        system("pause");
     } else {
-        cout <<"Podaj numer ID uzytkownika, ktorego chcesz zmienic dane: ";
-        id = readInt();
+        cout <<"Podaj numer ID uzytkownika, ktorego chcesz zmienic dane: " << endl;
+       id = readInt();
         indexToChange = searchPersonByID(persons, id);
         while(indexToChange == -1) {
-            cout << "Podales nieistniejacy id, sprobuj ponownie: ";
+            cout << "Podales niewlasciwy id" << endl;
+            displayAvaiableIDs(persons);
+            cout << endl << "Twoj wybor: ";
             id = readInt();
             indexToChange = searchPersonByID(persons, id);
-        }
         while(choice == 't') {
             cout << "Ktory parametr chcesz zmienic?" << endl;
             cout << "1 - Imie: "<< persons[indexToChange].firstName << endl;
@@ -327,6 +334,7 @@ void modifyPersonData(vector <Person> &persons) {
             choice = tolower(choice);
             system("cls");
         }
+        }
     }
 }
 void deletePerson(vector <Person> &persons) {
@@ -341,7 +349,9 @@ void deletePerson(vector <Person> &persons) {
         id = readInt();
         indexPersonToDelete = searchPersonByID(persons, id);
         while(indexPersonToDelete == -1) {
-            cout << "Podales niewlasciwy id, sprobuj ponownie ";
+            cout << "Podales niewlasciwy id" <<endl;
+            displayAvaiableIDs(persons);
+            cout << endl << "Twoj wybor: ";
             id = readInt();
             indexPersonToDelete = searchPersonByID(persons, id);
         }
@@ -370,12 +380,10 @@ void deletePerson(vector <Person> &persons) {
             file1.close();
             file2.close();
             if (remove("ksiazkaAdresowa.txt") != 0) {
-                cerr << "Error deleting original file." << endl;
                 exit(EXIT_FAILURE);
             }
 
             if (rename("ksiazkaAdresowa_tymczasowa.txt", "ksiazkaAdresowa.txt") != 0) {
-                cerr << "Error renaming temporary file." << endl;
                 exit(EXIT_FAILURE);
             }
             persons.erase(persons.begin() + indexPersonToDelete);
@@ -414,7 +422,6 @@ void changePassword(vector <User> &users,User &userLogged) {
                 user.password = newPassword;
             }
         }
-
         saveUserToFile(users);
         cout << endl << "Haslo zostalo zmienione pomyslnie" <<endl;
         Sleep(1000);
@@ -542,7 +549,7 @@ void loginUser(vector <User> &users) {
         Sleep(1500);
     }
 }
-bool isLoginFree(vector <User> &users, string loginName){
+bool isLoginAvaiable(vector <User> &users, string loginName){
     for(User user : users){
         if(user.login == loginName){
             return false;
@@ -560,7 +567,7 @@ void registartion(vector <User> &users) {
     }
     cout << "Podaj login: ";
     user.login = loadText();
-    while (!isLoginFree(users, user.login)) {
+    while (!isLoginAvaiable(users, user.login)) {
             system("cls");
         cout << "Podana nazwa uzytkownika - "<< user.login <<  " jest zajeta" << endl;
         Sleep(750);
