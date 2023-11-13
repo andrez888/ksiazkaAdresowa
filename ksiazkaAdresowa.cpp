@@ -5,7 +5,6 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
-#include <optional>
 
 using namespace std;
 
@@ -199,7 +198,7 @@ vector <Person> loadFromFile(int idUserNumber,int &lastID ) {
         }
         lastID = person.id;
     }
-     file.close();
+    file.close();
     return persons ;
 }
 void updatingFile(Person person, bool shouldDeleteEntry) {
@@ -225,12 +224,9 @@ void updatingFile(Person person, bool shouldDeleteEntry) {
             } else {
                 continue;
             }
-
         } else {
-
             file2 << line <<endl;
         }
-
     }
     file1.close();
     file2.close();
