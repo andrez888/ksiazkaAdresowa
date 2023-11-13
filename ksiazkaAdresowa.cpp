@@ -80,36 +80,38 @@ void saveDataToFile(vector <Person> persons) {
     }
     file.close();
 }
-void addFriend(int & personsQuantity, int userIdLogged ) {
-    int id = personsQuantity+1;
+void addFriend(vector <Person> &persons, int &personsQuantity, int userIdLogged ) {
+    Person person;
+
+    person.id = personsQuantity+1;
     personsQuantity++;
-    int userId = userIdLogged;
+    person.userId = userIdLogged;
     cout << "Podaj imie:  "<< endl;
-    string firstName = loadText();
+    person.firstName = loadText();
     cout << "Podaj nazwisko:  "<< endl;
-    string lastName = loadText();
+    person.lastName = loadText();
     cout << "Podaj numer telefonu:  "<< endl;
-    string phoneNumber = loadText();
+    person.phoneNumber = loadText();
     cout << "Podaj email:  "<< endl;
-    string emailAdress = loadText();
+    person.emailAdress = loadText();
     cout << "Podaj swoj adres:  "<< endl;
-    string adress = loadText();
+    person.adress = loadText();
 
     cout << endl << "Kontakt dodany pomyslnie" ;
     Sleep(1000);
-
+    persons.push_back(person);
     ofstream file;
     file.open("ksiazkaAdresowa.txt",ios::out | ios::app);
 
     if ( file.good()) {
-        file << id << "|";
-        file << userId << "|";
-        file << firstName << "|";
-        file << lastName << "|";
-        file << phoneNumber << "|";
-        file << emailAdress << "|";
-        file << adress << "|" ;
-        file << endl;
+        file << person.id << "|";
+        file << person.userId << "|";
+        file << person.firstName << "|";
+        file << person.lastName << "|";
+        file << person.phoneNumber << "|";
+        file << person.emailAdress << "|";
+        file << person.adress << "|" ;
+        file <<endl;
         file.close();
     } else {
         cout << "Nie udalo sie otworzyc pliku";
@@ -167,7 +169,7 @@ void searchByLastName(vector <Person> &persons) {
     }
     system("pause");
 }
-vector <Person> loadFromFile(int idUserNumber,int &personsquantity ) {
+vector <Person> loadFromFile(int idUserNumber,int &lastID ) {
     vector <Person> persons = {};
     Person person;
     string line;
@@ -183,7 +185,6 @@ vector <Person> loadFromFile(int idUserNumber,int &personsquantity ) {
 
             getline(iss, token, '|');
             person.id = stoi(token);
-            personsquantity = person.id;
             getline(iss, token, '|');
             person.userId = stoi(token);
             getline(iss, person.firstName, '|');
@@ -196,9 +197,52 @@ vector <Person> loadFromFile(int idUserNumber,int &personsquantity ) {
                 persons.push_back(person);
             }
         }
-        file.close();
+        lastID = person.id;
     }
+     file.close();
     return persons ;
+}
+void updatingFile(Person person, bool shouldDeleteEntry) {
+    ifstream file1;
+    ofstream file2;
+    file1.open("ksiazkaAdresowa.txt",ios::in);
+    file2.open("ksiazkaAdresowa_tymczasowa.txt",ios::out| ios::app);
+    string line;
+    string indexToChangeStr = to_string(person.id);
+    int numberLength = indexToChangeStr.length();
+    while(getline(file1,line)) {
+        string index = line.substr(0,numberLength);
+        if(indexToChangeStr == index) {
+            if(!shouldDeleteEntry) {
+                file2 << person.id << "|";
+                file2 << person.userId << "|";
+                file2 << person.firstName << "|";
+                file2 << person.lastName << "|";
+                file2 << person.phoneNumber << "|";
+                file2 << person.emailAdress << "|";
+                file2 << person.adress << "|" ;
+                file2 << endl;
+            } else {
+                continue;
+            }
+
+        } else {
+
+            file2 << line <<endl;
+        }
+
+    }
+    file1.close();
+    file2.close();
+    if (remove("ksiazkaAdresowa.txt") != 0) {
+        cerr << "Blad usuniecia oryginalnego pliku" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (rename("ksiazkaAdresowa_tymczasowa.txt", "ksiazkaAdresowa.txt") != 0) {
+        cerr << "Blad zmiany nazwy pliku tymczasowego" << endl;
+        exit(EXIT_FAILURE);
+    }
 }
 int searchPersonByID(vector <Person> &persons, int idToSearch) {
     int searchedPersonId = -1;
@@ -210,21 +254,30 @@ int searchPersonByID(vector <Person> &persons, int idToSearch) {
     }
     return searchedPersonId;
 }
+void displayAvaiableIDs(vector <Person> &persons) {
+    cout << "Dostepne id: ";
+    for(Person &person : persons) {
+        cout << person.id << " ";
+    }
+}
 void modifyPersonData(vector <Person> &persons) {
     int id;
     int indexToChange;
+    Person personChanged;
     char choice = 't';
     string dataToChange;
     system("cls");
     if(persons.empty()) {
         cout <<"Ksiazka adresowa jest pusta" << endl;
-
+        system("pause");
     } else {
-        cout <<"Podaj numer ID uzytkownika, ktorego chcesz zmienic dane: ";
+        cout <<"Podaj numer ID uzytkownika, ktorego chcesz zmienic dane: " << endl;
         id = readInt();
         indexToChange = searchPersonByID(persons, id);
         while(indexToChange == -1) {
-            cout << "Podales nieistniejacy id, sprobuj ponownie: ";
+            cout << "Podales niewlasciwy id" << endl;
+            displayAvaiableIDs(persons);
+            cout << endl << "Twoj wybor: ";
             id = readInt();
             indexToChange = searchPersonByID(persons, id);
         }
@@ -270,7 +323,7 @@ void modifyPersonData(vector <Person> &persons) {
                 cout << "Dane zmieniono pomyslnie" <<endl ;
                 system("pause");
             }
-
+            break;
             case '5': {
                 cout << "Podaj nowy adres: " << endl;
                 dataToChange = loadText();
@@ -287,40 +340,8 @@ void modifyPersonData(vector <Person> &persons) {
                 cout << "Zly wybor";
             }
             }
-            ifstream file1;
-            ofstream file2;
-            file1.open("ksiazkaAdresowa.txt",ios::in);
-            file2.open("ksiazkaAdresowa_tymczasowa.txt",ios::out| ios::app);
-            string line;
-            string indexToChangeStr = to_string(persons[indexToChange].id);
-            int numberLength = indexToChangeStr.length();
-            while(getline(file1,line)) {
-                string index = line.substr(0,numberLength);
-                if(indexToChangeStr == index) {
-                    file2 << persons[indexToChange].id << "|";
-                    file2 << persons[indexToChange].userId << "|";
-                    file2 << persons[indexToChange].firstName << "|";
-                    file2 << persons[indexToChange].lastName << "|";
-                    file2 << persons[indexToChange].phoneNumber << "|";
-                    file2 << persons[indexToChange].emailAdress << "|";
-                    file2 << persons[indexToChange].adress << "|" ;
-                    file2 << endl;
-                } else {
-                    file2 << line <<endl;
-                }
-
-            }
-            file1.close();
-            file2.close();
-            if (remove("ksiazkaAdresowa.txt") != 0) {
-                cerr << "Error deleting original file." << endl;
-                exit(EXIT_FAILURE);
-            }
-
-            if (rename("ksiazkaAdresowa_tymczasowa.txt", "ksiazkaAdresowa.txt") != 0) {
-                cerr << "Error renaming temporary file." << endl;
-                exit(EXIT_FAILURE);
-            }
+            personChanged = persons[indexToChange];
+            updatingFile(personChanged,false);
             cout << endl << "Chcesz jeszcze cos edytowac? t/n" <<endl;
             choice = loadChar();
             choice = tolower(choice);
@@ -330,8 +351,11 @@ void modifyPersonData(vector <Person> &persons) {
 }
 void deletePerson(vector <Person> &persons) {
     int id;
+    Person personToDelete;
     char confirm;
     int indexPersonToDelete;
+
+    system("cls");
     if(persons.empty()) {
         cout << "Ksiazka adresowa jest pusta" << endl;
     } else {
@@ -340,7 +364,9 @@ void deletePerson(vector <Person> &persons) {
         id = readInt();
         indexPersonToDelete = searchPersonByID(persons, id);
         while(indexPersonToDelete == -1) {
-            cout << "Podales niewlasciwy id, sprobuj ponownie ";
+            cout << "Podales niewlasciwy id" <<endl;
+            displayAvaiableIDs(persons);
+            cout << endl << "Twoj wybor: ";
             id = readInt();
             indexPersonToDelete = searchPersonByID(persons, id);
         }
@@ -350,34 +376,9 @@ void deletePerson(vector <Person> &persons) {
         confirm = loadChar();
         confirm = tolower(confirm);
         if(confirm == 't') {
+            personToDelete = persons[indexPersonToDelete];
+            updatingFile(personToDelete,true);
             persons.erase(persons.begin() + indexPersonToDelete);
-             ifstream file1;
-            ofstream file2;
-            file1.open("ksiazkaAdresowa.txt",ios::in);
-            file2.open("ksiazkaAdresowa_tymczasowa.txt",ios::out| ios::app);
-            string line;
-            string indexToDeletedStr = to_string(persons[indexPersonToDelete].id);
-            int numberLength = indexToDeletedStr.length();
-            while(getline(file1,line)) {
-                string index = line.substr(0,numberLength);
-                if(indexToDeletedStr == index) {
-                   continue;
-                } else {
-                    file2 << line <<endl;
-                }
-
-            }
-            file1.close();
-            file2.close();
-            if (remove("ksiazkaAdresowa.txt") != 0) {
-                cerr << "Error deleting original file." << endl;
-                exit(EXIT_FAILURE);
-            }
-
-            if (rename("ksiazkaAdresowa_tymczasowa.txt", "ksiazkaAdresowa.txt") != 0) {
-                cerr << "Error renaming temporary file." << endl;
-                exit(EXIT_FAILURE);
-            }
             cout << "uzytkownik usuniety" << endl;
         } else {
             cout << "uzytkownik nie zostal usuniety" << endl;
@@ -385,13 +386,47 @@ void deletePerson(vector <Person> &persons) {
     }
     system("pause");
 }
-void changePassword(User &userLogged){
+void saveUserToFile(vector <User> &users) {
+    ofstream file;
+    file.open("uzytkownicy.txt", ios::out);
 
+    if(!file) {
+        cout << "nie udalo sie otworzyc pliku" ;
+        Sleep(2000);
+    } else {
+        for(User user : users) {
+            file << user.id << "|" << user.login << "|" << user.password << "|" <<endl;
+        }
+    }
+    file.close();
 }
-void menu(User &userLogged) {
+void changePassword(vector <User> &users,User &userLogged) {
+    string oldPassword;
+    string newPassword;
+    cout << "Podaj dotychczasowe haslo: "<<endl;
+    oldPassword = loadText();
+    if(oldPassword == userLogged.password) {
+        cout << endl << "Podaj nowe haslo: " <<endl;
+        newPassword = loadText();
+
+        for(User &user: users) {
+            if(user.id == userLogged.id) {
+                user.password = newPassword;
+            }
+        }
+        saveUserToFile(users);
+        cout << endl << "Haslo zostalo zmienione pomyslnie" <<endl;
+        Sleep(1000);
+    } else {
+        cout << endl<< "Nie prawidlowe haslo"<<endl;
+        Sleep(1000);
+    }
+}
+void menu(vector <User> &users,User &userLogged) {
     vector <Person> persons;
     int personQuantity = 0;
-    persons = loadFromFile(userLogged.id,personQuantity);
+    int userLoggedId = userLogged.id;
+    persons = loadFromFile(userLoggedId,personQuantity);
     char choice;
 
     while(1) {
@@ -410,7 +445,7 @@ void menu(User &userLogged) {
         choice = loadChar();
         switch (choice) {
         case '1':
-            addFriend(personQuantity,userLogged.id);
+            addFriend(persons,personQuantity,userLoggedId);
             break;
         case '2':
             searchByFirstName(persons );
@@ -428,7 +463,7 @@ void menu(User &userLogged) {
             modifyPersonData(persons);
             break;
         case '7':
-            changePassword(userLogged);
+            changePassword(users,userLogged);
             break;
         case '8':
             return;
@@ -464,10 +499,9 @@ void loadUsersFromFile(vector <User> &users) {
     }
 }
 bool checkLoginData(vector <User> &users,string userLoginToCheck, User &foundUser) {
-    int userIdToLogin = 0;
     for(User user :users) {
         if(user.login == userLoginToCheck) {
-             foundUser = user;
+            foundUser = user;
             return true;
         }
     }
@@ -485,17 +519,17 @@ void loginUser(vector <User> &users) {
         cout << "Podaj haslo: ";
         string userPassword  = loadText();
         int counter = 3;
-        while(userPassword != userLogged.password && counter > 0){
+        while(userPassword != userLogged.password && counter > 0) {
             system("cls");
             cout << "Podales niewlasciwe haslo" << endl <<"Pozostalo " << counter << " prob";
             counter--;
-            if(counter >= 0){
+            if(counter >= 0) {
                 cout << endl << "Podaj haslo ponownie :" << endl;
                 userPassword = loadText();
             }
         }
         if (userPassword == userLogged.password) {
-            menu(userLogged);
+            menu(users,userLogged);
         } else {
             system("cls");
             cout << "Przekroczono limit prob logowania." << endl;
@@ -506,20 +540,13 @@ void loginUser(vector <User> &users) {
         Sleep(1500);
     }
 }
-void saveUserToFile(vector <User> &users) {
-    ofstream file;
-
-    file.open("uzytkownicy.txt", ios::out);
-
-    if(!file) {
-        cout << "nie udalo sie otworzyc pliku" ;
-        Sleep(2000);
-    } else {
-        for(User user : users) {
-            file << user.id << "|" << user.login << "|" << user.password << "|" <<endl;
+bool isLoginAvaiable(vector <User> &users, string loginName) {
+    for(User user : users) {
+        if(user.login == loginName) {
+            return false;
         }
     }
-    file.close();
+    return true;
 }
 void registartion(vector <User> &users) {
     User user;
@@ -530,7 +557,14 @@ void registartion(vector <User> &users) {
         user.id = users.back().id +1;
     }
     cout << "Podaj login: ";
-    user.login = loadText();;
+    user.login = loadText();
+    while (!isLoginAvaiable(users, user.login)) {
+        system("cls");
+        cout << "Podana nazwa uzytkownika - "<< user.login <<  " jest zajeta" << endl;
+        Sleep(750);
+        cout << "Podaj inny login: ";
+        user.login = loadText();
+    }
     cout << endl << "Podaj haslo: ";
     user.password  = loadText();;
     Sleep(500);
@@ -539,6 +573,7 @@ void registartion(vector <User> &users) {
     system("cls");
     users.push_back(user);
     saveUserToFile(users);
+
 }
 void mainMenu() {
     vector <User> users;
