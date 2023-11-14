@@ -584,7 +584,7 @@ void mainMenu() {
         cout<< "3.Wyjscie" << endl;
         cout << string(50, '-') <<endl;
         cout << "Twoj wybor: ";
-        cin >>choice;
+        choice = loadChar();
         switch(choice) {
         case '1':
             registartion(users);
@@ -601,8 +601,7 @@ void mainMenu() {
     }
 }
 int main() {
-    //menu()
-    mainMenu();
+   mainMenu();
 
     return 0;
 }
